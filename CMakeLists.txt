@@ -65,17 +65,17 @@ if(MSVC)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 endif()
 
-if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
-    # If we're doing an out of source build and the user has a zconf.h
-    # in their source tree...
-    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/zconf.h)
-        message(STATUS "Renaming")
-        message(STATUS "    ${CMAKE_CURRENT_SOURCE_DIR}/zconf.h")
-        message(STATUS "to 'zconf.h.included' because this file is included with zlib")
-        message(STATUS "but CMake generates it automatically in the build directory.")
-        file(RENAME ${CMAKE_CURRENT_SOURCE_DIR}/zconf.h ${CMAKE_CURRENT_SOURCE_DIR}/zconf.h.included)
-  endif()
-endif()
+# if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
+#     # If we're doing an out of source build and the user has a zconf.h
+#     # in their source tree...
+#     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/zconf.h)
+#         message(STATUS "Renaming")
+#         message(STATUS "    ${CMAKE_CURRENT_SOURCE_DIR}/zconf.h")
+#         message(STATUS "to 'zconf.h.included' because this file is included with zlib")
+#         message(STATUS "but CMake generates it automatically in the build directory.")
+#         file(RENAME ${CMAKE_CURRENT_SOURCE_DIR}/zconf.h ${CMAKE_CURRENT_SOURCE_DIR}/zconf.h.included)
+#   endif()
+# endif()
 
 set(ZLIB_PC ${CMAKE_CURRENT_BINARY_DIR}/zlib.pc)
 configure_file( ${CMAKE_CURRENT_SOURCE_DIR}/zlib.pc.cmakein
@@ -92,7 +92,7 @@ include_directories(
 #============================================================================
 
 set(ZLIB_PUBLIC_HDRS
-    ${CMAKE_CURRENT_BINARY_DIR}/zconf.h
+    zconf.h
     zlib.h
 )
 set(ZLIB_PRIVATE_HDRS
@@ -155,7 +155,7 @@ add_library(zlib SHARED ${ZLIB_SRCS} ${ZLIB_DLL_SRCS} ${ZLIB_PUBLIC_HDRS} ${ZLIB
 # target_include_directories(zlib PUBLIC
 #     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}>
 #     $<INSTALL_INTERFACE:include/>
-# add_library(zlibstatic STATIC ${ZLIB_SRCS} ${ZLIB_PUBLIC_HDRS} ${ZLIB_PRIVATE_HDRS})
+add_library(zlibstatic STATIC ${ZLIB_SRCS} ${ZLIB_PUBLIC_HDRS} ${ZLIB_PRIVATE_HDRS})
 # target_include_directories(zlibstatic PUBLIC
 #     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}  ${CMAKE_CURRENT_BINARY_DIR}>
 #     $<INSTALL_INTERFACE:include/>))
@@ -185,7 +185,7 @@ elseif(BUILD_SHARED_LIBS AND WIN32)
 endif()
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
-set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/zlib)
+set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/MyZlib)
 
 if(NOT DEFINED CMAKE_INSTALL_BINDIR)
     set(CMAKE_INSTALL_BINDIR "${CMAKE_SOURCE_DIR}/bin")
@@ -198,19 +198,29 @@ endif()
 if(NOT DEFINED CMAKE_INSTALL_INCLUDEDIR)
     set(CMAKE_INSTALL_INCLUDEDIR "${CMAKE_SOURCE_DIR}/include")
 endif()
-add_library(ZLIB::ZLIB ALIAS zlib)
-install(TARGETS zlib
-  EXPORT zlibTargets
+add_library(MyZlib::MyZlib ALIAS zlibstatic)
+install(TARGETS zlibstatic
+  EXPORT MyZlibTargets
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
-install(EXPORT zlibTargets
-  FILE zlibTargets.cmake
-  # NAMESPACE SQLite3::
+install(EXPORT MyZlibTargets
+  FILE MyZlibTargets.cmake
+  NAMESPACE MyZlib::
   DESTINATION ${INSTALL_CONFIGDIR}
 )
+configure_package_config_file(${CMAKE_CURRENT_LIST_DIR}/cmake/MyZlibConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/MyZlibConfig.cmake
+  INSTALL_DESTINATION ${INSTALL_CONFIGDIR}
+)
+
+install(FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/MyZlibConfig.cmake
+  DESTINATION ${INSTALL_CONFIGDIR}
+)
+install(FILES ${ZLIB_PUBLIC_HDRS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} COMPONENT headers)
 # if(NOT SKIP_INSTALL_LIBRARIES AND NOT SKIP_INSTALL_ALL )
 #     install(TARGETS zlib zlibstatic
 #         RUNTIME DESTINATION "${INSTALL_BIN_DIR}"
@@ -218,7 +228,7 @@ install(EXPORT zlibTargets
 #         LIBRARY DESTINATION "${INSTALL_LIB_DIR}" )
 # endif()
 # if(NOT SKIP_INSTALL_HEADERS AND NOT SKIP_INSTALL_ALL )
-#     install(FILES ${ZLIB_PUBLIC_HDRS} DESTINATION "${INSTALL_INC_DIR}")
+#     install(FILES ${ZLIB_PUBLIC_HDRS} DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 # endif()
 # if(NOT SKIP_INSTALL_FILES AND NOT SKIP_INSTALL_ALL )
 #     install(FILES zlib.3 DESTINATION "${INSTALL_MAN_DIR}/man3")
